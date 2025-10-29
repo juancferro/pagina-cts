@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OKAS — Demo</title>
+    <!-- Tailwind vía CDN (para estilos de las clases usadas) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React y ReactDOM UMD -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel Standalone para transpilar TSX/JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-neutral-50">
+    <div id="root"></div>
+
+    <!-- Loader: fetch pagina-cts/index.jsx, strip import/export, transpile TSX with Babel, execute -->
+    <script>
+      (async () => {
+        const res = await fetch('./index.jsx');
+        let src = await res.text();
+        // Remove React import (we use UMD globals)
+        src = src.replace(/^[\t ]*import\s+React[^\n]*\n/, 'const { useMemo, useState } = React;\n');
+        // Replace export default with a normal function
+        src = src.replace(/export\s+default\s+function\s+OKAS_UI_v2\s*\(/, 'function OKAS_UI_v2(');
+        // Append mount code at the end
+        src += "\n\nconst rootEl = document.getElementById('root');\nif (rootEl) { const root = ReactDOM.createRoot(rootEl); root.render(React.createElement(OKAS_UI_v2)); }\n";
+
+        const { code } = Babel.transform(src, {
+          filename: 'index.tsx',
+          presets: [
+            ['env', { targets: { esmodules: true } }],
+            ['react', { runtime: 'automatic' }],
+            ['typescript', { isTSX: true, allExtensions: true }],
+          ],
+        });
+
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.text = code;
+        document.body.appendChild(script);
+      })().catch(err => {
+        console.error('Error loading app:', err);
+        const el = document.getElementById('root');
+        if (el) el.textContent = 'Error loading app: ' + err;
+      });
+    </script>
+  </body>
+  </html>
